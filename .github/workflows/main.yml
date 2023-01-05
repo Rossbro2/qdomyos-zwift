@@ -15,8 +15,8 @@ on:
     branches: [ master,  github-workflow-playground ]
   pull_request:
     branches: [ master ]
-  schedule:
-    - cron: "0 0 * * *"
+  # schedule:
+  #   - cron: "0 0 * * *"
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -25,7 +25,7 @@ jobs:
     strategy:
       matrix:
         config:
-          - {python: true}
+          # - {python: true}
           - {python: false}
 
     steps:
@@ -343,6 +343,7 @@ jobs:
   linux-x86-build:
     # The type of runner that the job will run on
     runs-on: ubuntu-24.04
+    if: false
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -513,6 +514,7 @@ jobs:
   android-build:
     # The type of runner that the job will run on
     runs-on: ubuntu-22.04
+    if: false
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -843,6 +845,7 @@ jobs:
   ios-build:
     # The type of runner that the job will run on
     runs-on: macos-14
+    if: false
     permissions:
       contents: write
 
@@ -919,6 +922,7 @@ jobs:
 
   window-msvc2019-build:
     runs-on: windows-latest
+    if: false
     strategy:
       matrix:
         config:
@@ -1129,6 +1133,7 @@ jobs:
         if:  ${{ ! matrix.config.python }}
 
   window-msvc2019-aiserver-build:
+    if: false
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
@@ -1281,6 +1286,7 @@ jobs:
           path: windows-msvc2019-ai-server-binary.zip
 
   raspberry-pi-build:
+    if: false
     runs-on: ubuntu-latest
     
     steps:
@@ -1338,6 +1344,7 @@ jobs:
           path: src/qdomyos-zwift-32bit
 
   raspberry-pi-build-and-image-64bit:
+    if: false
     runs-on: ubuntu-22.04
     
     steps:
