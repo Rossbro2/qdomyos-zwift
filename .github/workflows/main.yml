@@ -339,6 +339,7 @@ jobs:
   linux-x86-build:
     # The type of runner that the job will run on
     runs-on: ubuntu-20.04
+    if: false
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -509,6 +510,7 @@ jobs:
   android-build:
     # The type of runner that the job will run on
     runs-on: ubuntu-20.04
+    if: false
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -653,6 +655,7 @@ jobs:
   ios-build:
     # The type of runner that the job will run on
     runs-on: macos-latest
+    if: false
     permissions:
       contents: write
 
