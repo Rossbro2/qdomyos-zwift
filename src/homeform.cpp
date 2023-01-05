@@ -380,7 +380,7 @@ homeform::homeform(QQmlApplicationEngine *engine, bluetooth *bl) {
 #ifndef STEAM_STORE
     connect(engine, &QQmlApplicationEngine::quit, &QGuiApplication::quit);
     connect(&tLicense, &QTimer::timeout, this, &homeform::licenseTimeout);
-    tLicense.start(600000);
+    //tLicense.start(600000);
     licenseRequest();
 #endif
 #endif
@@ -432,7 +432,7 @@ homeform::homeform(QQmlApplicationEngine *engine, bluetooth *bl) {
 
     backupTimer = new QTimer(this);
     connect(backupTimer, &QTimer::timeout, this, &homeform::backup);
-    backupTimer->start(1min);
+    //backupTimer->start(1min);
 
     QObject *rootObject = engine->rootObjects().constFirst();
     QObject *home = rootObject->findChild<QObject *>(QStringLiteral("home"));
