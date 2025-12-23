@@ -1034,8 +1034,9 @@ import Qt.labs.platform 1.1
 
             // from version 2.18.10
             property string csafe_elliptical_port: ""
-            property string osc_ip: ""
-            property int osc_port: 9000
+            property string osc_ip: "192.168.1.15"
+            property int osc_port: 8000
+            property bool osc_onyx_enabled: true
 
             // from version 2.18.11
             property bool strava_treadmill: true
@@ -12808,6 +12809,20 @@ import Qt.labs.platform 1.1
                                     text: "OK"
                                     Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                                     onClicked: { settings.osc_port = oscPortTextField.text; window.settings_restart_to_apply = true; toast.show("Setting saved!"); }
+                                }
+                            }
+
+                            RowLayout {
+                                spacing: 10
+                                Label {
+                                    text: qsTr("Onyx OSC Enabled:")
+                                    Layout.fillWidth: true
+                                }
+                                Switch {
+                                    id: oscOnyxEnabledSwitch
+                                    checked: settings.osc_onyx_enabled
+                                    Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                                    onCheckedChanged: { settings.osc_onyx_enabled = checked; window.settings_restart_to_apply = true; }
                                 }
                             }
                         }

@@ -851,6 +851,7 @@ const QString QZSettings::nordictrack_gx_44_pro = QStringLiteral("nordictrack_gx
 const QString QZSettings::OSC_ip = QStringLiteral("osc_ip");
 const QString QZSettings::default_OSC_ip = QStringLiteral("");
 const QString QZSettings::OSC_port = QStringLiteral("osc_port");
+const QString QZSettings::osc_onyx_enabled = QStringLiteral("osc_onyx_enabled");
 const QString QZSettings::strava_treadmill = QStringLiteral("strava_treadmill");
 const QString QZSettings::iconsole_rower = QStringLiteral("iconsole_rower");
 const QString QZSettings::proform_treadmill_1500_pro = QStringLiteral("proform_treadmill_1500_pro");
@@ -1009,7 +1010,7 @@ const QString QZSettings::proform_csx210 = QStringLiteral("proform_csx210");
 const QString QZSettings::skandika_wiri_x2000_protocol = QStringLiteral("skandika_wiri_x2000_protocol");
 
 
-const uint32_t allSettingsCount = 824;
+const uint32_t allSettingsCount = 825;
 
 QVariant allSettings[allSettingsCount][2] = {
     {QZSettings::cryptoKeySettingsProfiles, QZSettings::default_cryptoKeySettingsProfiles},
@@ -1724,6 +1725,7 @@ QVariant allSettings[allSettingsCount][2] = {
     {QZSettings::nordictrack_gx_44_pro, QZSettings::default_nordictrack_gx_44_pro},
     {QZSettings::OSC_ip, QZSettings::default_OSC_ip},
     {QZSettings::OSC_port, QZSettings::default_OSC_port},
+    {QZSettings::osc_onyx_enabled, QZSettings::default_osc_onyx_enabled},
     {QZSettings::strava_treadmill, QZSettings::default_strava_treadmill},
     {QZSettings::iconsole_rower, QZSettings::default_iconsole_rower},
     {QZSettings::proform_treadmill_1500_pro, QZSettings::default_proform_treadmill_1500_pro},

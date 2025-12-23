@@ -4,9 +4,9 @@ OSC::OSC(bluetooth* manager, QObject *parent)
     : QObject{parent}
 {
     bluetoothManager = manager;
-    // Setup timer for periodic publishing
+    // Setup timer for periodic publishing (matches bike polling rate of 200ms)
     m_timer = new QTimer();
-    m_timer->setInterval(1000);
+    m_timer->setInterval(200);
     connect(m_timer, &QTimer::timeout, this, &OSC::publishWorkoutData);
 
     OSC_recvSocket->bind(9001);
@@ -27,6 +27,46 @@ void OSC::publishWorkoutData() {
     int osc_len = OSC_makePacket(osc_buffer, sizeof(osc_buffer));
     int osc_ret_len = OSC_sendSocket->writeDatagram(osc_buffer, osc_len, QHostAddress(OSC_ip), OSC_port);
     qDebug() << "OSC >> " << osc_ret_len << QByteArray::fromRawData(osc_buffer, osc_len).toHex(' ');
+
+#ifdef Q_OS_WIN
+    // Send Onyx OSC commands for lighting control (Windows only)
+    bool osc_onyx_enabled = settings.value(QZSettings::osc_onyx_enabled, QZSettings::default_osc_onyx_enabled).toBool();
+    if(osc_onyx_enabled && bluetoothManager->device()->deviceType() == BIKE) {
+        // Get current speed and power
+        float currentSpeed = bluetoothManager->device()->currentSpeed().value();
+        float currentPower = bluetoothManager->device()->wattsMetric().value();
+        float ftp = settings.value(QZSettings::ftp, QZSettings::default_ftp).toFloat();
+
+        // Calculate fader values (0-255)
+        // Fader 2: Speed mapped from 0-20mph to 0-255
+        float speedFader = (currentSpeed / 20.0f) * 255.0f;
+        if(speedFader < 0.0f) speedFader = 0.0f;
+        if(speedFader > 255.0f) speedFader = 255.0f;
+
+        // Fader 3: Power/FTP ratio mapped to 0-255
+        // Formula: (.8 * currentPower / FTP) mapped to 0-100% then to 0-255
+        float powerFaderPercent = (80.0f * currentPower / ftp);
+        if(powerFaderPercent < 0.0f) powerFaderPercent = 0.0f;
+        if(powerFaderPercent > 100.0f) powerFaderPercent = 100.0f;
+        float powerFader = (powerFaderPercent / 100.0f) * 255.0f;
+
+        OSCPP::Client::Packet packet(osc_buffer, sizeof(osc_buffer));
+        packet.openBundle(1234ULL)
+            .openMessage("/Mx/fader/4213", 1)
+            .float32(speedFader)
+            .closeMessage()
+
+            .openMessage("/Mx/fader/4223", 1)
+            .float32(powerFader)
+            .closeMessage()
+
+            .closeBundle();
+        OSC_sendSocket->writeDatagram(osc_buffer, packet.size(), QHostAddress(OSC_ip), OSC_port);
+
+        qDebug() << "Onyx OSC >> Speed:" << currentSpeed << "mph -> Fader:" << speedFader 
+                 << "| Power:" << currentPower << "W (FTP:" << ftp << ") -> Fader:" << powerFader;
+    }
+#endif
 }
 
 size_t OSC::OSC_makePacket(void* buffer, size_t size)

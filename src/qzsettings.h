@@ -2339,7 +2339,10 @@ class QZSettings {
     static const QString default_OSC_ip;
 
     static const QString OSC_port;
-    static constexpr int default_OSC_port = 9000;
+    static constexpr int default_OSC_port = 8000;
+
+    static const QString osc_onyx_enabled;
+    static constexpr bool default_osc_onyx_enabled = true;
 
     static const QString strava_treadmill;
     static constexpr bool default_strava_treadmill = true;
