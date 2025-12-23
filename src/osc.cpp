@@ -15,6 +15,9 @@ OSC::OSC(bluetooth* manager, QObject *parent)
 }
 
 void OSC::publishWorkoutData() {
+    static int callCount = 0;
+    qDebug() << "OSC::publishWorkoutData() called - count:" << ++callCount;
+    
     if(!bluetoothManager->device()) return;
     QSettings settings;
     QString OSC_ip = settings.value(QZSettings::OSC_ip, QZSettings::default_OSC_ip).toString();
@@ -32,14 +35,16 @@ void OSC::publishWorkoutData() {
     // Send Onyx OSC commands for lighting control (Windows only)
     bool osc_onyx_enabled = settings.value(QZSettings::osc_onyx_enabled, QZSettings::default_osc_onyx_enabled).toBool();
     if(osc_onyx_enabled && bluetoothManager->device()->deviceType() == BIKE) {
-        // Get current speed and power
-        float currentSpeed = bluetoothManager->device()->currentSpeed().value();
+        // Get current speed and power - use .value() to get instantaneous values without averaging
+        float currentSpeedKph = bluetoothManager->device()->currentSpeed().value();
         float currentPower = bluetoothManager->device()->wattsMetric().value();
         float ftp = settings.value(QZSettings::ftp, QZSettings::default_ftp).toFloat();
 
-        // Calculate fader values (0-255)
         // Fader 2: Speed mapped from 0-20mph to 0-255
-        float speedFader = (currentSpeed / 20.0f) * 255.0f;
+        // Convert speed from km/h to mph (1 km/h = 0.621371 mph)
+        float speedMph = currentSpeedKph * 0.621371f;
+        // Calculate fader values (0-255)
+        float speedFader = (speedMph / 20.0f) * 255.0f;
         if(speedFader < 0.0f) speedFader = 0.0f;
         if(speedFader > 255.0f) speedFader = 255.0f;
 
@@ -63,7 +68,7 @@ void OSC::publishWorkoutData() {
             .closeBundle();
         OSC_sendSocket->writeDatagram(osc_buffer, packet.size(), QHostAddress(OSC_ip), OSC_port);
 
-        qDebug() << "Onyx OSC >> Speed:" << currentSpeed << "mph -> Fader:" << speedFader 
+        qDebug() << "Onyx OSC >> Speed:" << currentSpeedKph << "km/h (" << speedMph << "mph) -> Fader:" << speedFader 
                  << "| Power:" << currentPower << "W (FTP:" << ftp << ") -> Fader:" << powerFader;
     }
 #endif
