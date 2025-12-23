@@ -11,6 +11,11 @@ OSC::OSC(bluetooth* manager, QObject *parent)
     m_OSC_port = settings.value(QZSettings::OSC_port, QZSettings::default_OSC_port).toInt();
     m_osc_onyx_enabled = settings.value(QZSettings::osc_onyx_enabled, QZSettings::default_osc_onyx_enabled).toBool();
     m_ftp = settings.value(QZSettings::ftp, QZSettings::default_ftp).toFloat();
+    
+    // Initialize interpolation variables
+    m_lastSpeed = 0.0f;
+    m_lastPower = 0.0f;
+    m_lastUpdateTime = QDateTime::currentDateTime();
 
     // Setup timer for periodic publishing (matches bike polling rate of 200ms)
     m_timer = new QTimer();
@@ -40,9 +45,17 @@ void OSC::publishWorkoutData() {
 #ifdef Q_OS_WIN
     // Send Onyx OSC commands for lighting control (Windows only)
     if(m_osc_onyx_enabled && bluetoothManager->device()->deviceType() == BIKE) {
-        // Get current speed and power - use .value() to get instantaneous values without averaging
-        float currentSpeedKph = bluetoothManager->device()->currentSpeed().value();
-        float currentPower = bluetoothManager->device()->wattsMetric().value();
+        // Get current speed and power from bike (target values)
+        float targetSpeedKph = bluetoothManager->device()->currentSpeed().value();
+        float targetPower = bluetoothManager->device()->wattsMetric().value();
+        
+        // Interpolate: move halfway from last value to target value
+        float currentSpeedKph = m_lastSpeed + (targetSpeedKph - m_lastSpeed) * 0.5f;
+        float currentPower = m_lastPower + (targetPower - m_lastPower) * 0.5f;
+        
+        // Store current as last for next iteration
+        m_lastSpeed = currentSpeedKph;
+        m_lastPower = currentPower;
 
         // Fader 2: Speed mapped from 0-20mph to 0-255
         // Convert speed from km/h to mph (1 km/h = 0.621371 mph)
@@ -72,8 +85,9 @@ void OSC::publishWorkoutData() {
             .closeBundle();
         OSC_sendSocket->writeDatagram(osc_buffer, packet.size(), QHostAddress(m_OSC_ip), m_OSC_port);
 
-        qDebug() << "Onyx OSC >> Speed:" << currentSpeedKph << "km/h (" << speedMph << "mph) -> Fader:" << speedFader 
-                 << "| Power:" << currentPower << "W (FTP:" << m_ftp << ") -> Fader:" << powerFader;
+        qDebug() << "Onyx OSC >> Target Speed:" << targetSpeedKph << "km/h -> Interpolated:" << currentSpeedKph 
+                 << "km/h (" << speedMph << "mph) -> Fader:" << speedFader 
+                 << "| Target Power:" << targetPower << "W -> Interpolated:" << currentPower << "W -> Fader:" << powerFader;
     }
 #endif
 }

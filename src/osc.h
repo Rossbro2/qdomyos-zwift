@@ -34,6 +34,11 @@ class OSC : public QObject
     int m_OSC_port;
     bool m_osc_onyx_enabled;
     float m_ftp;
+    
+    // For interpolation
+    float m_lastSpeed = 0.0f;
+    float m_lastPower = 0.0f;
+    QDateTime m_lastUpdateTime;
 
     size_t OSC_makePacket(void* buffer, size_t size);
     void OSC_handlePacket(const OSCPP::Server::Packet& packet);

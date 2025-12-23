@@ -30,6 +30,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+
       - name: Checkout submodule repo
         uses: actions/checkout@v2
         with:
@@ -37,15 +38,13 @@ jobs:
           path: "src/smtpclient/"
           ref: 3fa4a0fe5797070339422cf18b5e9ed8dcb91f9c
 
-      - uses: actions/checkout@v2
       - name: Checkout submodule repo
         uses: actions/checkout@v2
         with:
           repository: cagnulein/qmdnsengine
           path: "src/qmdnsengine/"
-          ref: "zwift"   
+          ref: "zwift"
 
-      - uses: actions/checkout@v2
       - name: Checkout submodule repo
         uses: actions/checkout@v2
         with:
@@ -53,7 +52,6 @@ jobs:
           path: "tst/googletest/"
           ref: "release-1.12.1"
 
-      - uses: actions/checkout@v2
       - name: Checkout submodule repo
         uses: actions/checkout@v2
         with:
@@ -61,18 +59,19 @@ jobs:
           path: "src/MSIX-Toolkit/"
           ref: b82af826d29e93e4c85d34fad8a405b6c49905e7
 
-      - uses: actions/checkout@v2
       - name: Checkout qHttpServer
         uses: actions/checkout@v2
         with:
           repository: qt-labs/qthttpserver
           path: "src/qthttpserver"
 
-
       - uses: actions/setup-python@v4
+        if: matrix.config.python
         with:
           python-version: 3.7
+
       - name: download python and paddleocr
+        if: matrix.config.python
         run: |
           python -VV
           python -m pip install --upgrade pip
@@ -85,7 +84,6 @@ jobs:
           python -m pip install opencv-python
           python -m pip install numpy
           python -m pip install pywin32
-        if: matrix.config.python
 
       - uses: msys2/setup-msys2@v2
         with:
@@ -109,7 +107,7 @@ jobs:
           dir: "${{github.workspace}}/qt/"
           install-deps: "true"
           cache: 'true'
-          cache-key-prefix: 'install-qt-action-windows'          
+          cache-key-prefix: 'install-qt-action-windows'
 
       - name: download 3rd party files for qthttpserver
         run: |
@@ -138,6 +136,7 @@ jobs:
           cd ..  
 
       - name: Build
+        if: matrix.config.python
         run: |
             qmake
             make -j8
@@ -161,10 +160,10 @@ jobs:
             cp ../../adb/* adb/
             cd ..
             cd appx
-            #../../MSIX-Toolkit/WindowsSDK/10/10.0.20348.0/x64/makeappx.exe pack /d ../output/ /p qz   
-        if: matrix.config.python
-            
+            #../../MSIX-Toolkit/WindowsSDK/10/10.0.20348.0/x64/makeappx.exe pack /d ../output/ /p qz
+
       - name: Build without python
+        if:  ${{ ! matrix.config.python }}
         run: |
             qmake
             make -j8
@@ -184,33 +183,32 @@ jobs:
             cp ../../adb/* adb/
             cd ..
             cd appx
-            #../../MSIX-Toolkit/WindowsSDK/10/10.0.20348.0/x64/makeappx.exe pack /d ../output/ /p qz          
-        if: matrix.config.python == false
+            #../../MSIX-Toolkit/WindowsSDK/10/10.0.20348.0/x64/makeappx.exe pack /d ../output/ /p qz
 
       - name: patching qt for bluetooth
         run: cp qt-patches/windows/5.15.2/binary/mingw64/*.* ${{ github.workspace }}/src/debug/output/
 
       - name: Zip artifact for deployment
-        run: Compress-Archive src/debug/output windows-binary.zip
         if: matrix.config.python
+        run: Compress-Archive src/debug/output windows-binary.zip
 
       - name: Zip artifact for deployment
-        run: Compress-Archive src/debug/output windows-binary-no-python.zip
         if:  ${{ ! matrix.config.python }}
+        run: Compress-Archive src/debug/output windows-binary-no-python.zip
 
       - name: Archive windows binary
+        if: matrix.config.python
         uses: actions/upload-artifact@v4
         with:
           name: windows-binary
           path: windows-binary.zip
-        if: matrix.config.python
 
       - name: Archive windows binary
+        if:  ${{ ! matrix.config.python }}
         uses: actions/upload-artifact@v4
         with:
           name: windows-binary-no-python
           path: windows-binary-no-python.zip
-        if:  ${{ ! matrix.config.python }}
 
       # - name: Exit if not on master branch
       #   if: github.ref == 'refs/heads/master'
@@ -224,7 +222,7 @@ jobs:
       #   id: previoustag
       #   uses: 'WyriHaximus/github-action-get-previous-tag@v1'
       #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}          
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # - name: Create Release
       #   if:  ${{ ! matrix.config.python }}
