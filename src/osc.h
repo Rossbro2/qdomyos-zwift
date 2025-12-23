@@ -28,6 +28,12 @@ class OSC : public QObject
   private:
     QTimer* m_timer;
     bluetooth* bluetoothManager;
+    
+    // Cached settings to avoid repeated QSettings reads
+    QString m_OSC_ip;
+    int m_OSC_port;
+    bool m_osc_onyx_enabled;
+    float m_ftp;
 
     size_t OSC_makePacket(void* buffer, size_t size);
     void OSC_handlePacket(const OSCPP::Server::Packet& packet);

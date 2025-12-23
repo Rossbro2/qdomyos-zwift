@@ -4,6 +4,14 @@ OSC::OSC(bluetooth* manager, QObject *parent)
     : QObject{parent}
 {
     bluetoothManager = manager;
+
+    // Cache settings once at construction
+    QSettings settings;
+    m_OSC_ip = settings.value(QZSettings::OSC_ip, QZSettings::default_OSC_ip).toString();
+    m_OSC_port = settings.value(QZSettings::OSC_port, QZSettings::default_OSC_port).toInt();
+    m_osc_onyx_enabled = settings.value(QZSettings::osc_onyx_enabled, QZSettings::default_osc_onyx_enabled).toBool();
+    m_ftp = settings.value(QZSettings::ftp, QZSettings::default_ftp).toFloat();
+
     // Setup timer for periodic publishing (matches bike polling rate of 200ms)
     m_timer = new QTimer();
     m_timer->setInterval(200);
@@ -19,26 +27,22 @@ void OSC::publishWorkoutData() {
     qDebug() << "OSC::publishWorkoutData() called - count:" << ++callCount;
     
     if(!bluetoothManager->device()) return;
-    QSettings settings;
-    QString OSC_ip = settings.value(QZSettings::OSC_ip, QZSettings::default_OSC_ip).toString();
-    int OSC_port = settings.value(QZSettings::OSC_port, QZSettings::default_OSC_port).toInt();
-    QByteArray osc_read = OSC_recvSocket->readAll();
-    if(!osc_read.isEmpty()) {
-        OSC_handlePacket(OSCPP::Server::Packet(osc_read.data(), osc_read.length()));
-    }
+    
+    // QByteArray osc_read = OSC_recvSocket->readAll();
+    // if(!osc_read.isEmpty()) {
+    //     OSC_handlePacket(OSCPP::Server::Packet(osc_read.data(), osc_read.length()));
+    // }
     char osc_buffer[3000];
-    int osc_len = OSC_makePacket(osc_buffer, sizeof(osc_buffer));
-    int osc_ret_len = OSC_sendSocket->writeDatagram(osc_buffer, osc_len, QHostAddress(OSC_ip), OSC_port);
-    qDebug() << "OSC >> " << osc_ret_len << QByteArray::fromRawData(osc_buffer, osc_len).toHex(' ');
+    // int osc_len = OSC_makePacket(osc_buffer, sizeof(osc_buffer));
+    // int osc_ret_len = OSC_sendSocket->writeDatagram(osc_buffer, osc_len, QHostAddress(m_OSC_ip), m_OSC_port);
+    // qDebug() << "OSC >> " << osc_ret_len << QByteArray::fromRawData(osc_buffer, osc_len).toHex(' ');
 
 #ifdef Q_OS_WIN
     // Send Onyx OSC commands for lighting control (Windows only)
-    bool osc_onyx_enabled = settings.value(QZSettings::osc_onyx_enabled, QZSettings::default_osc_onyx_enabled).toBool();
-    if(osc_onyx_enabled && bluetoothManager->device()->deviceType() == BIKE) {
+    if(m_osc_onyx_enabled && bluetoothManager->device()->deviceType() == BIKE) {
         // Get current speed and power - use .value() to get instantaneous values without averaging
         float currentSpeedKph = bluetoothManager->device()->currentSpeed().value();
         float currentPower = bluetoothManager->device()->wattsMetric().value();
-        float ftp = settings.value(QZSettings::ftp, QZSettings::default_ftp).toFloat();
 
         // Fader 2: Speed mapped from 0-20mph to 0-255
         // Convert speed from km/h to mph (1 km/h = 0.621371 mph)
@@ -50,7 +54,7 @@ void OSC::publishWorkoutData() {
 
         // Fader 3: Power/FTP ratio mapped to 0-255
         // Formula: (.8 * currentPower / FTP) mapped to 0-100% then to 0-255
-        float powerFaderPercent = (80.0f * currentPower / ftp);
+        float powerFaderPercent = (80.0f * currentPower / m_ftp);
         if(powerFaderPercent < 0.0f) powerFaderPercent = 0.0f;
         if(powerFaderPercent > 100.0f) powerFaderPercent = 100.0f;
         float powerFader = (powerFaderPercent / 100.0f) * 255.0f;
@@ -66,10 +70,10 @@ void OSC::publishWorkoutData() {
             .closeMessage()
 
             .closeBundle();
-        OSC_sendSocket->writeDatagram(osc_buffer, packet.size(), QHostAddress(OSC_ip), OSC_port);
+        OSC_sendSocket->writeDatagram(osc_buffer, packet.size(), QHostAddress(m_OSC_ip), m_OSC_port);
 
         qDebug() << "Onyx OSC >> Speed:" << currentSpeedKph << "km/h (" << speedMph << "mph) -> Fader:" << speedFader 
-                 << "| Power:" << currentPower << "W (FTP:" << ftp << ") -> Fader:" << powerFader;
+                 << "| Power:" << currentPower << "W (FTP:" << m_ftp << ") -> Fader:" << powerFader;
     }
 #endif
 }
