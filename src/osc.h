@@ -35,10 +35,13 @@ class OSC : public QObject
     bool m_osc_onyx_enabled;
     float m_ftp;
     
-    // For interpolation
-    float m_lastSpeed = 0.0f;
-    float m_lastPower = 0.0f;
-    QDateTime m_lastUpdateTime;
+    // For interpolation - linear interpolation over 4 steps when bike value changes
+    int m_counter_power = 4;
+    int m_counter_speed = 4;
+    float m_prevSpeedKph = 0.0f;
+    float m_prevPower = 0.0f;
+    float m_lastSeenTargetSpeed = 0.0f;
+    float m_lastSeenTargetPower = 0.0f;
 
     size_t OSC_makePacket(void* buffer, size_t size);
     void OSC_handlePacket(const OSCPP::Server::Packet& packet);

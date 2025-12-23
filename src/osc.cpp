@@ -11,11 +11,6 @@ OSC::OSC(bluetooth* manager, QObject *parent)
     m_OSC_port = settings.value(QZSettings::OSC_port, QZSettings::default_OSC_port).toInt();
     m_osc_onyx_enabled = settings.value(QZSettings::osc_onyx_enabled, QZSettings::default_osc_onyx_enabled).toBool();
     m_ftp = settings.value(QZSettings::ftp, QZSettings::default_ftp).toFloat();
-    
-    // Initialize interpolation variables
-    m_lastSpeed = 0.0f;
-    m_lastPower = 0.0f;
-    m_lastUpdateTime = QDateTime::currentDateTime();
 
     // Setup timer for periodic publishing (matches bike polling rate of 200ms)
     m_timer = new QTimer();
@@ -48,14 +43,35 @@ void OSC::publishWorkoutData() {
         // Get current speed and power from bike (target values)
         float targetSpeedKph = bluetoothManager->device()->currentSpeed().value();
         float targetPower = bluetoothManager->device()->wattsMetric().value();
-        
-        // Interpolate: move halfway from last value to target value
-        float currentSpeedKph = m_lastSpeed + (targetSpeedKph - m_lastSpeed) * 0.5f;
-        float currentPower = m_lastPower + (targetPower - m_lastPower) * 0.5f;
-        
-        // Store current as last for next iteration
-        m_lastSpeed = currentSpeedKph;
-        m_lastPower = currentPower;
+
+        // Linear interpolation: detect when bike value changes and smoothly transition over 4 steps
+        if(targetPower != m_lastSeenTargetPower) {
+            // Power changed - save old target as new baseline, reset counter
+            m_prevPower = m_lastSeenTargetPower;
+            m_lastSeenTargetPower = targetPower;
+            m_counter_power = 1;
+        } else {
+            // Power unchanged - increment counter (max 4)
+            if(m_counter_power < 4) {
+                m_counter_power++;
+            }
+        }
+
+        if(targetSpeedKph != m_lastSeenTargetSpeed) {
+            // Speed changed - save old target as new baseline, reset counter
+            m_prevSpeedKph = m_lastSeenTargetSpeed;
+            m_lastSeenTargetSpeed = targetSpeedKph;
+            m_counter_speed = 1;
+        } else {
+            // Speed unchanged - increment counter (max 4)
+            if(m_counter_speed < 4) {
+                m_counter_speed++;
+            }
+        }
+
+        // Calculate interpolated values: prev + (counter/4) * (target - prev)
+        float currentSpeedKph = m_prevSpeedKph + (m_counter_speed / 4.0f) * (targetSpeedKph - m_prevSpeedKph);
+        float currentPower = m_prevPower + (m_counter_power / 4.0f) * (targetPower - m_prevPower);
 
         // Fader 2: Speed mapped from 0-20mph to 0-255
         // Convert speed from km/h to mph (1 km/h = 0.621371 mph)
@@ -85,9 +101,10 @@ void OSC::publishWorkoutData() {
             .closeBundle();
         OSC_sendSocket->writeDatagram(osc_buffer, packet.size(), QHostAddress(m_OSC_ip), m_OSC_port);
 
-        qDebug() << "Onyx OSC >> Target Speed:" << targetSpeedKph << "km/h -> Interpolated:" << currentSpeedKph 
-                 << "km/h (" << speedMph << "mph) -> Fader:" << speedFader 
-                 << "| Target Power:" << targetPower << "W -> Interpolated:" << currentPower << "W -> Fader:" << powerFader;
+        qDebug() << "Onyx OSC >> Counter Power:" << m_counter_power << "/4 | Counter Speed:" << m_counter_speed << "/4 | Prev:" << m_prevSpeedKph << "kph," << m_prevPower << "W"
+                 << "| Target:" << targetSpeedKph << "kph," << targetPower << "W"
+                 << "| Current:" << currentSpeedKph << "kph (" << speedMph << "mph)," << currentPower << "W"
+                 << "| Faders:" << speedFader << "," << powerFader;
     }
 #endif
 }
