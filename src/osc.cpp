@@ -73,20 +73,24 @@ void OSC::publishWorkoutData() {
         float currentSpeedKph = m_prevSpeedKph + (m_counter_speed / 4.0f) * (targetSpeedKph - m_prevSpeedKph);
         float currentPower = m_prevPower + (m_counter_power / 4.0f) * (targetPower - m_prevPower);
 
-        // Fader 2: Speed mapped from 0-20mph to 0-255
-        // Convert speed from km/h to mph (1 km/h = 0.621371 mph)
-        float speedMph = currentSpeedKph * 0.621371f;
-        // Calculate fader values (0-255)
-        float speedFader = (speedMph / 20.0f) * 255.0f;
+        // Fader 2: Speed mapped from 0-35mph to 0-255
+        // Convert speed from km/h to mph (1 km/h = 0.621371 mph) and calculate fader values (0-255)
+        float speedFader = (currentSpeedKph * 0.621371f / 35.0f) * 255.0f;
         if(speedFader < 0.0f) speedFader = 0.0f;
         if(speedFader > 255.0f) speedFader = 255.0f;
 
-        // Fader 3: Power/FTP ratio mapped to 0-255
-        // Formula: (.8 * currentPower / FTP) mapped to 0-100% then to 0-255
-        float powerFaderPercent = (80.0f * currentPower / m_ftp);
-        if(powerFaderPercent < 0.0f) powerFaderPercent = 0.0f;
-        if(powerFaderPercent > 100.0f) powerFaderPercent = 100.0f;
-        float powerFader = (powerFaderPercent / 100.0f) * 255.0f;
+        // Fader 3: Power/FTP ratio mapped [0.52, 1.25] to fader [0, 255]
+        float powerRatio = currentPower / m_ftp;
+        float powerFader;
+
+        if(powerRatio < 0.52f) {
+            powerFader = 0.0f;
+        } else if(powerRatio > 1.25f) {
+            powerFader = 255.0f;
+        } else {
+            // Linear mapping from [0.52, 1.25] to [0, 255]
+            powerFader = ((powerRatio - 0.52f) / (1.25f - 0.52f)) * 255.0f;
+        }
 
         OSCPP::Client::Packet packet(osc_buffer, sizeof(osc_buffer));
         packet.openBundle(1234ULL)
@@ -103,7 +107,7 @@ void OSC::publishWorkoutData() {
 
         qDebug() << "Onyx OSC >> Counter Power:" << m_counter_power << "/4 | Counter Speed:" << m_counter_speed << "/4 | Prev:" << m_prevSpeedKph << "kph," << m_prevPower << "W"
                  << "| Target:" << targetSpeedKph << "kph," << targetPower << "W"
-                 << "| Current:" << currentSpeedKph << "kph (" << speedMph << "mph)," << currentPower << "W"
+                 << "| Current:" << currentSpeedKph << "kph," << currentPower << "W"
                  << "| Faders:" << speedFader << "," << powerFader;
     }
 #endif
